@@ -284,4 +284,21 @@ public class HomeController implements Initializable {
             // TODO: Proper error handling
         }
     }
+    @FXML
+    private void navigateToAbout(ActionEvent event) {
+        try {
+            FXMLLoader fxmlLoader = new FXMLLoader(FhmdbApplication.class.getResource("about-view.fxml"));
+            Scene scene = new Scene(fxmlLoader.load(), 890, 620);
+            scene.getStylesheets().add(Objects.requireNonNull(FhmdbApplication.class.getResource("styles.css")).toExternalForm());
+
+            Stage stage = (Stage) aboutBtn.getScene().getWindow();
+            stage.setScene(scene);
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // TODO: Proper error handling
+        }
+
+
+    }
 }
