@@ -13,24 +13,24 @@ import javafx.scene.paint.Color;
 
 import java.util.stream.Collectors;
 
-public class MovieCell extends ListCell<Movie> {
+public class WatchlistMovieCell extends ListCell<Movie> {
     private final Label title = new Label();
     private final Label detail = new Label();
     private final Label genre = new Label();
     private final JFXButton detailBtn = new JFXButton("Show Details");
-    private final JFXButton watchlistBtn = new JFXButton("Watchlist");
-    private final HBox buttonBox = new HBox(10, detailBtn, watchlistBtn);
+    private final JFXButton removeBtn = new JFXButton("Remove");
+    private final HBox buttonBox = new HBox(10, detailBtn, removeBtn);
     private final VBox layout = new VBox(title, detail, genre, buttonBox);
     private boolean collapsedDetails = true;
-    private final ClickEventHandler<Movie> addToWatchlistClicked;
+    private final ClickEventHandler<Movie> removeFromWatchlistClicked;
 
-    public MovieCell(ClickEventHandler<Movie> addToWatchlistClicked) {
+    public WatchlistMovieCell(ClickEventHandler<Movie> removeFromWatchlistClicked) {
         super();
-        this.addToWatchlistClicked = addToWatchlistClicked;
+        this.removeFromWatchlistClicked = removeFromWatchlistClicked;
 
         // color scheme
         detailBtn.setStyle("-fx-background-color: #f5c518;");
-        watchlistBtn.setStyle("-fx-background-color: #f5c518;");
+        removeBtn.setStyle("-fx-background-color: #f5c518;");
         title.getStyleClass().add("text-yellow");
         detail.getStyleClass().add("text-white");
         genre.getStyleClass().add("text-white");
@@ -58,8 +58,8 @@ public class MovieCell extends ListCell<Movie> {
             setGraphic(layout);
         });
 
-        watchlistBtn.setOnMouseClicked(mouseEvent -> {
-            addToWatchlistClicked.onClick(getItem());
+        removeBtn.setOnMouseClicked(mouseEvent -> {
+            removeFromWatchlistClicked.onClick(getItem());
         });
     }
 
