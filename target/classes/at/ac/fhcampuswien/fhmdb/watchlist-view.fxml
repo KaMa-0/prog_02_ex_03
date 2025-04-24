@@ -40,7 +40,7 @@
                 <children>
                     <JFXButton fx:id="homeBtn" onAction="#navigateToHome" styleClass="nav-button" stylesheets="@styles.css" text="Home" prefWidth="130.0" />
                     <JFXButton fx:id="watchlistBtn" onAction="#navigateToWatchlist" styleClass="nav-button-active" stylesheets="@styles.css" text="Watchlist" prefWidth="130.0" />
-                    <JFXButton fx:id="aboutBtn" styleClass="nav-button" stylesheets="@styles.css" text="About" prefWidth="130.0" />
+                    <JFXButton fx:id="aboutBtn" onAction="#navigateToAbout" styleClass="nav-button" stylesheets="@styles.css" text="About" prefWidth="130.0" />
                 </children>
             </VBox>
 
