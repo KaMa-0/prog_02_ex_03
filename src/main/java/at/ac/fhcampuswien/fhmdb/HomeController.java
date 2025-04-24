@@ -1,6 +1,9 @@
 package at.ac.fhcampuswien.fhmdb;
 
 import at.ac.fhcampuswien.fhmdb.api.MovieAPI;
+import at.ac.fhcampuswien.fhmdb.db.DatabaseManager;
+import at.ac.fhcampuswien.fhmdb.db.MovieRepository;
+import at.ac.fhcampuswien.fhmdb.db.WatchlistRepository;
 import at.ac.fhcampuswien.fhmdb.exceptions.DatabaseException;
 import at.ac.fhcampuswien.fhmdb.exceptions.MovieAPIException;
 import at.ac.fhcampuswien.fhmdb.models.Genre;
@@ -21,6 +24,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.TextField;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.VBox;
@@ -79,10 +83,24 @@ public class HomeController implements Initializable {
 
     protected SortedState sortedState;
 
-    private final ClickEventHandler<Movie> onAddToWatchlistClicked = (clickedItem) -> {
-        // TODO: Implement code to add movie to watchlist in DB
-        System.out.println("Adding to watchlist: " + clickedItem.getTitle());
-    };
+    private final DatabaseManager databaseManager;
+    private final MovieRepository movieRepository;
+    private final WatchlistRepository watchlistRepository;
+    private final ClickEventHandler<Movie> onAddToWatchlistClicked;
+
+    public HomeController() {
+        this.databaseManager = DatabaseManager.getInstance();
+        this.movieRepository = new MovieRepository(databaseManager);
+        this.watchlistRepository = new WatchlistRepository(databaseManager, movieRepository);
+        onAddToWatchlistClicked = (clickedItem) -> {
+            try {
+                watchlistRepository.addToWatchlist(clickedItem);
+                showAlert("Success", "Movie added to watchlist: " + clickedItem.getTitle(), Alert.AlertType.INFORMATION);
+            } catch (DatabaseException e) {
+                showAlert("Error", "Failed to add movie to watchlist: " + e.getMessage(), Alert.AlertType.ERROR);
+            }
+        };
+    }
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -90,12 +108,54 @@ public class HomeController implements Initializable {
         initializeLayout();
         setupSidebarAnimations();
     }
-
     public void initializeState() {
-        List<Movie> result = MovieAPI.getAllMovies();
-        setMovies(result);
-        setMovieList(result);
-        sortedState = SortedState.NONE;
+        try {
+            List<Movie> result = getMoviesFromAPIorDatabase();
+            setMovies(result);
+            setMovieList(result);
+            sortedState = SortedState.NONE;
+        } catch (MovieAPIException | DatabaseException e) {
+            showAlert("Error", "Failed to load movies: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
+    }
+
+    private List<Movie> getMoviesFromAPIorDatabase() throws MovieAPIException, DatabaseException {
+        try {
+            // Versuche, Filme von der API zu holen
+            List<Movie> apiMovies = MovieAPI.getAllMovies();
+
+            if (!apiMovies.isEmpty()) {
+                // Filme von der API erhalten, in der Datenbank cachen
+                try {
+                    movieRepository.addAllMovies(apiMovies);
+                } catch (DatabaseException e) {
+                    // Fehler beim Cachen, aber wir haben trotzdem die API-Filme
+                    System.err.println("Error caching movies: " + e.getMessage());
+                }
+                return apiMovies;
+            } else {
+                throw new MovieAPIException("No movies returned from API");
+            }
+        } catch (Exception e) {
+            // API-Fehler, versuche Filme aus der Datenbank zu laden
+            System.err.println("API error: " + e.getMessage() + ". Trying to load from database...");
+
+            try {
+                return movieRepository.getAllMovies().stream()
+                        .map(movieEntity -> movieEntity.toMovie())
+                        .collect(Collectors.toList());
+            } catch (DatabaseException dbEx) {
+                throw new DatabaseException("Failed to load movies from database", dbEx);
+            }
+        }
+    }
+
+    private void showAlert(String title, String content, Alert.AlertType alertType) {
+        Alert alert = new Alert(alertType);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
     }
 
     public void initializeLayout() {
@@ -233,21 +293,25 @@ public class HomeController implements Initializable {
     }
 
     public void searchBtnClicked(ActionEvent actionEvent) {
-        String searchQuery = searchField.getText().trim().toLowerCase();
-        String releaseYear = validateComboboxValue(releaseYearComboBox.getSelectionModel().getSelectedItem());
-        String ratingFrom = validateComboboxValue(ratingFromComboBox.getSelectionModel().getSelectedItem());
-        String genreValue = validateComboboxValue(genreComboBox.getSelectionModel().getSelectedItem());
+        try {
+            String searchQuery = searchField.getText().trim().toLowerCase();
+            String releaseYear = validateComboboxValue(releaseYearComboBox.getSelectionModel().getSelectedItem());
+            String ratingFrom = validateComboboxValue(ratingFromComboBox.getSelectionModel().getSelectedItem());
+            String genreValue = validateComboboxValue(genreComboBox.getSelectionModel().getSelectedItem());
 
-        Genre genre = null;
-        if(genreValue != null) {
-            genre = Genre.valueOf(genreValue);
+            Genre genre = null;
+            if(genreValue != null) {
+                genre = Genre.valueOf(genreValue);
+            }
+
+            List<Movie> movies = getMovies(searchQuery, genre, releaseYear, ratingFrom);
+            setMovies(movies);
+            setMovieList(movies);
+
+            sortMovies(sortedState);
+        } catch (Exception e) {
+            showAlert("Error", "Error filtering movies: " + e.getMessage(), Alert.AlertType.ERROR);
         }
-
-        List<Movie> movies = getMovies(searchQuery, genre, releaseYear, ratingFrom);
-        setMovies(movies);
-        setMovieList(movies);
-
-        sortMovies(sortedState);
     }
 
     public String validateComboboxValue(Object value) {
@@ -258,7 +322,21 @@ public class HomeController implements Initializable {
     }
 
     public List<Movie> getMovies(String searchQuery, Genre genre, String releaseYear, String ratingFrom) {
-        return MovieAPI.getAllMovies(searchQuery, genre, releaseYear, ratingFrom);
+        try {
+            return MovieAPI.getAllMovies(searchQuery, genre, releaseYear, ratingFrom);
+        } catch (Exception e) {
+            showAlert("API Error", "Could not load movies from API. Using cached movies from database.", Alert.AlertType.WARNING);
+
+            try {
+                // Wenn API-Aufruf fehlschlägt, versuche Filme aus der Datenbank zu laden
+                return movieRepository.getAllMovies().stream()
+                        .map(movieEntity -> movieEntity.toMovie())
+                        .collect(Collectors.toList());
+            } catch (DatabaseException dbEx) {
+                showAlert("Database Error", "Could not load movies from database: " + dbEx.getMessage(), Alert.AlertType.ERROR);
+                return new ArrayList<>();
+            }
+        }
     }
 
     public void sortBtnClicked(ActionEvent actionEvent) {
@@ -282,10 +360,10 @@ public class HomeController implements Initializable {
             stage.setScene(scene);
             stage.show();
         } catch (IOException e) {
-            e.printStackTrace();
-            // TODO: Proper error handling
+            showAlert("Navigation Error", "Error navigating to watchlist: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
+
     @FXML
     private void navigateToAbout(ActionEvent event) {
         try {
@@ -297,11 +375,7 @@ public class HomeController implements Initializable {
             stage.setScene(scene);
             stage.show();
         } catch (IOException e) {
-            e.printStackTrace();
-            // TODO: Proper error handling
+            showAlert("Navigation Error", "Error navigating to about page: " + e.getMessage(), Alert.AlertType.ERROR);
         }
-
-
     }
-
 }

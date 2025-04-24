@@ -1,5 +1,6 @@
 package at.ac.fhcampuswien.fhmdb.api;
 
+import at.ac.fhcampuswien.fhmdb.exceptions.MovieAPIException;
 import at.ac.fhcampuswien.fhmdb.models.Genre;
 import at.ac.fhcampuswien.fhmdb.models.Movie;
 import okhttp3.*;
@@ -15,7 +16,7 @@ public class MovieAPI {
     private static final String URL = "http://prog2.fh-campuswien.ac.at/movies"; // https if certificates work
     private static final OkHttpClient client = new OkHttpClient();
 
-    private String buildUrl(UUID id) {
+    private static String buildUrl(UUID id) {
         StringBuilder url = new StringBuilder(URL);
         if (id != null) {
             url.append("/").append(id);
@@ -26,7 +27,7 @@ public class MovieAPI {
     private static String buildUrl(String query, Genre genre, String releaseYear, String ratingFrom) {
         StringBuilder url = new StringBuilder(URL);
 
-        if ( (query != null && !query.isEmpty()) ||
+        if ((query != null && !query.isEmpty()) ||
                 genre != null || releaseYear != null || ratingFrom != null) {
 
             url.append("?");
@@ -49,11 +50,11 @@ public class MovieAPI {
         return url.toString();
     }
 
-    public static List<Movie> getAllMovies() {
+    public static List<Movie> getAllMovies() throws MovieAPIException {
         return getAllMovies(null, null, null, null);
     }
 
-    public static List<Movie> getAllMovies(String query, Genre genre, String releaseYear, String ratingFrom){
+    public static List<Movie> getAllMovies(String query, Genre genre, String releaseYear, String ratingFrom) throws MovieAPIException {
         String url = buildUrl(query, genre, releaseYear, ratingFrom);
         Request request = new Request.Builder()
                 .url(url)
@@ -62,30 +63,35 @@ public class MovieAPI {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new MovieAPIException("API response not successful. Status code: " + response.code());
+            }
+
             String responseBody = response.body().string();
             Gson gson = new Gson();
             Movie[] movies = gson.fromJson(responseBody, Movie[].class);
 
             return Arrays.asList(movies);
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            throw new MovieAPIException("Error fetching movies from API", e);
         }
-        return new ArrayList<>();
     }
 
-    public Movie requestMovieById(UUID id){
+    public static Movie requestMovieById(UUID id) throws MovieAPIException {
         String url = buildUrl(id);
         Request request = new Request.Builder()
                 .url(url)
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
+            if (!response.isSuccessful()) {
+                throw new MovieAPIException("API response not successful. Status code: " + response.code());
+            }
+
             Gson gson = new Gson();
             return gson.fromJson(response.body().string(), Movie.class);
         } catch (Exception e) {
-            System.err.println(this.getClass() + ": http status not ok");
+            throw new MovieAPIException("Error fetching movie with ID " + id, e);
         }
-
-        return null;
     }
 }
