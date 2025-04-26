@@ -88,7 +88,7 @@ public class HomeController implements Initializable {
     private final WatchlistRepository watchlistRepository;
     private final ClickEventHandler<Movie> onAddToWatchlistClicked;
 
-    public HomeController() {
+    public HomeController() throws DatabaseException {
         this.databaseManager = DatabaseManager.getInstance();
         this.movieRepository = new MovieRepository(databaseManager);
         this.watchlistRepository = new WatchlistRepository(databaseManager, movieRepository);

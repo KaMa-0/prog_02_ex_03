@@ -18,14 +18,7 @@ public class DatabaseManager {
     private Dao<MovieEntity, Long> movieDao;
     private Dao<WatchlistMovieEntity, Long> watchlistDao;
 
-    public static DatabaseManager getInstance() {
-        if (instance == null) {
-            instance = new DatabaseManager();
-        }
-        return instance;
-    }
-
-    private DatabaseManager() {
+    private DatabaseManager() throws DatabaseException{
         try {
             createConnectionSource();
             createTables();
@@ -34,8 +27,27 @@ public class DatabaseManager {
         }
     }
 
-    public void createConnectionSource() throws SQLException {
-        connectionSource = new JdbcConnectionSource(DB_URL, username, password);
+    public static DatabaseManager getInstance() throws DatabaseException {
+        if (instance == null) {
+            instance = new DatabaseManager();
+        }
+        return instance;
+    }
+
+    public void createConnectionSource() throws DatabaseException {
+        try {
+            connectionSource = new JdbcConnectionSource(DB_URL, username, password);
+        } catch (SQLException e) {
+            throw new DatabaseException(e.getMessage());
+        } finally { // connection cleanup
+            if(connectionSource != null) {
+                try {
+                    connectionSource.close();
+                } catch (Exception e) {
+                    throw new DatabaseException(e);
+                }
+            }
+        }
     }
 
     public void createTables() throws SQLException {
@@ -46,7 +58,7 @@ public class DatabaseManager {
         watchlistDao = DaoManager.createDao(connectionSource, WatchlistMovieEntity.class);
     }
 
-    public ConnectionSource getConnectionSource() {
+    public ConnectionSource getConnectionSource() throws DatabaseException {
         return connectionSource;
     }
 
@@ -59,12 +71,12 @@ public class DatabaseManager {
     }
 
     // Hilfsmethode zum Schließen der Verbindung
-    public void closeConnection() {
+    public void closeConnection() throws DatabaseException {
         if (connectionSource != null) {
             try {
                 connectionSource.close();
             } catch (Exception e) {
-                System.err.println("Error closing database connection: " + e.getMessage());
+                throw new DatabaseException(e.getMessage());
             }
         }
     }

@@ -70,7 +70,7 @@ public class WatchlistController implements Initializable {
     }
 
     // Konstruktor: Initialisiert den DatabaseManager und die Repository-Instanzen
-    public WatchlistController() {
+    public WatchlistController() throws DatabaseException {
         this.databaseManager = DatabaseManager.getInstance();
         this.movieRepository = new MovieRepository(databaseManager);
         this.watchlistRepository = new WatchlistRepository(databaseManager, movieRepository);
