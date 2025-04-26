@@ -27,6 +27,11 @@ public class WatchlistRepository {
         }
     }
 
+    // Entspricht dem vorgeschlagenen getAll()
+    public List<WatchlistMovieEntity> getAll() throws DatabaseException {
+        return getWatchlist();
+    }
+
     public List<Movie> getWatchlistMovies() throws DatabaseException {
         List<WatchlistMovieEntity> watchlistEntities = getWatchlist();
         List<Movie> watchlistMovies = new ArrayList<>();
@@ -67,11 +72,38 @@ public class WatchlistRepository {
         }
     }
 
+    // Ergänzung: Direkt mit MovieEntity arbeiten
+    public int addToWatchlist(MovieEntity movieEntity) throws DatabaseException {
+        try {
+            // Prüfe, ob Film bereits in der Watchlist ist
+            WatchlistMovieEntity existingEntry = getWatchlistEntry(movieEntity.getApiId());
+            if (existingEntry != null) {
+                // Film ist bereits in der Watchlist
+                return 0;
+            }
+
+            // Füge Film zur Watchlist hinzu
+            WatchlistMovieEntity watchlistEntry = new WatchlistMovieEntity(movieEntity.getApiId());
+            return dao.create(watchlistEntry);
+        } catch (SQLException e) {
+            throw new DatabaseException("Error adding movie to watchlist", e);
+        }
+    }
+
     public int removeFromWatchlist(String apiId) throws DatabaseException {
         try {
             DeleteBuilder<WatchlistMovieEntity, Long> deleteBuilder = dao.deleteBuilder();
             deleteBuilder.where().eq("apiId", apiId);
             return deleteBuilder.delete();
+        } catch (SQLException e) {
+            throw new DatabaseException("Error removing movie from watchlist", e);
+        }
+    }
+
+    // Ergänzung: Entfernen über ID
+    public int removeFromWatchlist(Long watchlistId) throws DatabaseException {
+        try {
+            return dao.deleteById(watchlistId);
         } catch (SQLException e) {
             throw new DatabaseException("Error removing movie from watchlist", e);
         }

@@ -6,7 +6,6 @@ import at.ac.fhcampuswien.fhmdb.models.Movie;
 import okhttp3.*;
 import com.google.gson.Gson;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -32,7 +31,7 @@ public class MovieAPI {
 
             url.append("?");
 
-            // check all parameters and add them to the url
+            // Parameter zur URL hinzufügen
             if (query != null && !query.isEmpty()) {
                 url.append("query=").append(query).append(DELIMITER);
             }
@@ -59,12 +58,12 @@ public class MovieAPI {
         Request request = new Request.Builder()
                 .url(url)
                 .removeHeader("User-Agent")
-                .addHeader("User-Agent", "http.agent")  // needed for the server to accept the request
+                .addHeader("User-Agent", "http.agent")  // benötigt für Server-Akzeptanz
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new MovieAPIException("API response not successful. Status code: " + response.code());
+                throw new MovieAPIException("API-Antwort nicht erfolgreich. Status-Code: " + response.code());
             }
 
             String responseBody = response.body().string();
@@ -73,7 +72,7 @@ public class MovieAPI {
 
             return Arrays.asList(movies);
         } catch (Exception e) {
-            throw new MovieAPIException("Error fetching movies from API", e);
+            throw new MovieAPIException("Fehler beim Abrufen der Filme von der API", e);
         }
     }
 
@@ -81,17 +80,19 @@ public class MovieAPI {
         String url = buildUrl(id);
         Request request = new Request.Builder()
                 .url(url)
+                .removeHeader("User-Agent")
+                .addHeader("User-Agent", "http.agent")
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
             if (!response.isSuccessful()) {
-                throw new MovieAPIException("API response not successful. Status code: " + response.code());
+                throw new MovieAPIException("API-Antwort nicht erfolgreich. Status-Code: " + response.code());
             }
 
             Gson gson = new Gson();
             return gson.fromJson(response.body().string(), Movie.class);
         } catch (Exception e) {
-            throw new MovieAPIException("Error fetching movie with ID " + id, e);
+            throw new MovieAPIException("Fehler beim Abrufen des Films mit ID " + id, e);
         }
     }
 }

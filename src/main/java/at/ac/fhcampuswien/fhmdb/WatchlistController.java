@@ -2,6 +2,7 @@ package at.ac.fhcampuswien.fhmdb;
 
 import at.ac.fhcampuswien.fhmdb.db.DatabaseManager;
 import at.ac.fhcampuswien.fhmdb.db.MovieRepository;
+import at.ac.fhcampuswien.fhmdb.db.WatchlistMovieEntity;
 import at.ac.fhcampuswien.fhmdb.db.WatchlistRepository;
 import at.ac.fhcampuswien.fhmdb.exceptions.DatabaseException;
 import at.ac.fhcampuswien.fhmdb.models.Movie;
@@ -29,6 +30,7 @@ import java.net.URL;
 import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
+import java.util.function.Consumer;
 
 public class WatchlistController implements Initializable {
 
@@ -61,6 +63,12 @@ public class WatchlistController implements Initializable {
     private final MovieRepository movieRepository;
     private final WatchlistRepository watchlistRepository;
 
+    // Functional Interface für Callbacks
+    @FunctionalInterface
+    public interface WatchlistCallback {
+        void onComplete(boolean success, String message);
+    }
+
     // Konstruktor: Initialisiert den DatabaseManager und die Repository-Instanzen
     public WatchlistController() {
         this.databaseManager = DatabaseManager.getInstance();
@@ -76,7 +84,15 @@ public class WatchlistController implements Initializable {
 
         // Konfiguriere die ListView mit der beobachtbaren Liste und benutzerdefinierter Zellenanzeige
         watchlistView.setItems(observableMovies);
-        watchlistView.setCellFactory(movieListView -> new WatchlistMovieCell(this::removeFromWatchlist));
+        watchlistView.setCellFactory(movieListView -> new WatchlistMovieCell(movie ->
+                removeFromWatchlist(movie, (success, message) -> {
+                    if (success) {
+                        observableMovies.remove(movie);
+                    } else {
+                        showAlert("Fehler", message, Alert.AlertType.ERROR);
+                    }
+                })
+        ));
 
         // Richte die Animationen für die Sidebar ein
         setupSidebarAnimations();
@@ -89,7 +105,7 @@ public class WatchlistController implements Initializable {
             observableMovies.clear();
             observableMovies.addAll(watchlistMovies);
         } catch (DatabaseException e) {
-            showAlert("Error", "Failed to load watchlist: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Datenbank-Fehler", "Fehler beim Laden der Watchlist: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -134,14 +150,17 @@ public class WatchlistController implements Initializable {
         hideSidebarAnimation.play();
     }
 
-    // Entfernt einen Film aus der Watchlist sowohl in der Datenbank als auch in der UI
-    private void removeFromWatchlist(Movie movie) {
+    // Entfernt einen Film aus der Watchlist unter Verwendung des Callback-Patterns
+    private void removeFromWatchlist(Movie movie, WatchlistCallback callback) {
         try {
-            watchlistRepository.removeFromWatchlist(movie.getId());
-            observableMovies.remove(movie);
-            showAlert("Success", "Movie removed from watchlist: " + movie.getTitle(), Alert.AlertType.INFORMATION);
+            int result = watchlistRepository.removeFromWatchlist(movie.getId());
+            if (result > 0) {
+                callback.onComplete(true, "Film erfolgreich entfernt: " + movie.getTitle());
+            } else {
+                callback.onComplete(false, "Film konnte nicht entfernt werden");
+            }
         } catch (DatabaseException e) {
-            showAlert("Error", "Failed to remove movie from watchlist: " + e.getMessage(), Alert.AlertType.ERROR);
+            callback.onComplete(false, e.getMessage());
         }
     }
 
@@ -166,7 +185,7 @@ public class WatchlistController implements Initializable {
             stage.setScene(scene);
             stage.show();
         } catch (IOException e) {
-            showAlert("Navigation Error", "Error navigating to home page: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Navigation Error", "Fehler bei der Navigation zur Startseite: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 
@@ -188,7 +207,7 @@ public class WatchlistController implements Initializable {
             stage.setScene(scene);
             stage.show();
         } catch (IOException e) {
-            showAlert("Navigation Error", "Error navigating to about page: " + e.getMessage(), Alert.AlertType.ERROR);
+            showAlert("Navigation Error", "Fehler bei der Navigation zur Info-Seite: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
 }
