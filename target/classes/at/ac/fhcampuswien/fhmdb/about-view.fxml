@@ -22,7 +22,7 @@
                 <Font name="Calibri" size="18.0"/>
             </font>
         </Label>
-        <Label text="Developed by: Maid K. , Zafer S. and Annas S." style="-fx-text-fill: white;">
+        <Label text="Based on Exercise 2 solution, extended by: Maid K. , Zafer S. and Annas S." style="-fx-text-fill: white;">
             <font>
                 <Font name="Calibri" size="16.0"/>
             </font>
