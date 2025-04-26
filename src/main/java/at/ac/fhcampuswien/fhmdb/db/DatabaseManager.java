@@ -23,7 +23,7 @@ public class DatabaseManager {
             createConnectionSource();
             createTables();
         } catch (SQLException e) {
-            System.err.println("Database connection error: " + e.getMessage());
+            throw new DatabaseException("Database connection error: " + e.getMessage());
         }
     }
 

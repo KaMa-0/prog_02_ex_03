@@ -321,12 +321,10 @@ public class HomeController implements Initializable {
         return null;
     }
 
-    public List<Movie> getMovies(String searchQuery, Genre genre, String releaseYear, String ratingFrom) {
+    public List<Movie> getMovies(String searchQuery, Genre genre, String releaseYear, String ratingFrom) throws MovieAPIException{
         try {
             return MovieAPI.getAllMovies(searchQuery, genre, releaseYear, ratingFrom);
-        } catch (Exception e) {
-            showAlert("API Error", "Could not load movies from API. Using cached movies from database.", Alert.AlertType.WARNING);
-
+        } catch (MovieAPIException e) {
             try {
                 // Wenn API-Aufruf fehlschlägt, versuche Filme aus der Datenbank zu laden
                 return movieRepository.getAllMovies().stream()
