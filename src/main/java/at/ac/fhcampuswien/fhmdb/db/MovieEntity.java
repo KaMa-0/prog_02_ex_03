@@ -50,33 +50,6 @@ public class MovieEntity {
         return apiId;
     }
 
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public String getGenres() {
-        return genres;
-    }
-
-    public int getReleaseYear() {
-        return releaseYear;
-    }
-
-    public int getLengthInMinutes() {
-        return lengthInMinutes;
-    }
-
-    public String getImgUrl() {
-        return imgUrl;
-    }
-
-    public double getRating() {
-        return rating;
-    }
     public Movie toMovie(){ //Diese Methode konvertiert ein MovieEntity-Objekt zurück in ein Movie-Objekt, nimmt die Werte aus dem Entity-Objekt und erstellt ein neues Movie-Objekt.
                             //Diese Methode ist wichtig, um Daten aus der Datenbank in ein Format zu bringen, das in der Anwendungsschicht verwendet werden kann.
         return new Movie(this.apiId, this.title, this.description, stringToGenres(this.genres), this.releaseYear, this.imgUrl, this.lengthInMinutes, this.rating);
@@ -140,6 +113,7 @@ public class MovieEntity {
         }
         return movieEntities;
     }
+
     public static List<Movie> toMovies(List<MovieEntity> movieEntities) {
         // Null-Prüfung
         if (movieEntities == null || movieEntities.isEmpty()) {

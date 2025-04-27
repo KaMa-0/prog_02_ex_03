@@ -40,13 +40,7 @@ public class DatabaseManager {
         } catch (SQLException e) {
             throw new DatabaseException(e.getMessage());
         } finally { // connection cleanup
-            if(connectionSource != null) {
-                try {
-                    connectionSource.close();
-                } catch (Exception e) {
-                    throw new DatabaseException(e);
-                }
-            }
+            closeConnection();
         }
     }
 

@@ -25,14 +25,6 @@ public class MovieRepository {
         }
     }
 
-    public int removeAll() throws DatabaseException {
-        try {
-            return dao.deleteBuilder().delete();
-        } catch (SQLException e) {
-            throw new DatabaseException("Error removing all movies from database", e);
-        }
-    }
-
     public MovieEntity getMovie(String apiId) throws DatabaseException {
         try {
             QueryBuilder<MovieEntity, Long> queryBuilder = dao.queryBuilder();
@@ -66,16 +58,6 @@ public class MovieRepository {
             return count;
         } catch (SQLException e) {
             throw new DatabaseException("Error adding movies to database", e);
-        }
-    }
-
-    public int removeMovie(String apiId) throws DatabaseException {
-        try {
-            DeleteBuilder<MovieEntity, Long> deleteBuilder = dao.deleteBuilder();
-            deleteBuilder.where().eq("apiId", apiId);
-            return deleteBuilder.delete();
-        } catch (SQLException e) {
-            throw new DatabaseException("Error removing movie with ID " + apiId, e);
         }
     }
 }
